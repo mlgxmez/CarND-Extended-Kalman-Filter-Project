@@ -27,11 +27,8 @@ void KalmanFilter::Predict() {
   TODO:
     * predict the state
   */
-  std::cout << "P entering Predict():" << std::endl << "P_ = " << P_ << std::endl; 
-  std::cout << "Q entering Predict():" << std::endl << "Q_ = " << Q_ << std::endl;
   x_ = F_*x_;
   P_ = F_*P_*F_.transpose() + Q_;
-  std::cout << "P exiting Predict():" << std::endl << "P_ = " << P_ << std::endl;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
@@ -42,8 +39,8 @@ void KalmanFilter::Update(const VectorXd &z) {
   int x_size = x_.size();
   MatrixXd I = MatrixXd::Identity(x_size,x_size);
   VectorXd y = z - H_*x_;
-  MatrixXd S_ = H_*P_*H_.transpose() + R_;
-  MatrixXd K = P_*H_.transpose()*S_.inverse();
+  MatrixXd S = H_*P_*H_.transpose() + R_;
+  MatrixXd K = P_*H_.transpose()*S.inverse();
   x_ = x_ + (K*y);
   P_ = (I - K*H_)*P_;
 }
@@ -88,7 +85,6 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
 
   MatrixXd S = H_*P_*H_.transpose() + R_;
   MatrixXd K = P_*H_.transpose()*S.inverse();
-  //std::cout << "K =" << K << std::endl;
 
   int x_size = x_.size();
   MatrixXd I = MatrixXd::Identity(x_size,x_size);
