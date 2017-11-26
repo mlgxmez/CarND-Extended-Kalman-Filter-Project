@@ -1,4 +1,6 @@
 #include "kalman_filter.h"
+#include <iostream>
+#define M_PI 3.14159265358979323846
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -25,6 +27,11 @@ void KalmanFilter::Predict() {
   TODO:
     * predict the state
   */
+  std::cout << "P entering Predict():" << std::endl << "P_ = " << P_ << std::endl; 
+  std::cout << "Q entering Predict():" << std::endl << "Q_ = " << Q_ << std::endl;
+  x_ = F_*x_;
+  P_ = F_*P_*F_.transpose() + Q_;
+  std::cout << "P exiting Predict():" << std::endl << "P_ = " << P_ << std::endl;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
@@ -32,6 +39,13 @@ void KalmanFilter::Update(const VectorXd &z) {
   TODO:
     * update the state by using Kalman Filter equations
   */
+  int x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size,x_size);
+  VectorXd y = z - H_*x_;
+  MatrixXd S_ = H_*P_*H_.transpose() + R_;
+  MatrixXd K = P_*H_.transpose()*S_.inverse();
+  x_ = x_ + (K*y);
+  P_ = (I - K*H_)*P_;
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
@@ -39,4 +53,45 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+  double px = x_(0);
+  double py = x_(1);
+  double vx = x_(2);
+  double vy = x_(3);
+
+  // Check division by zero
+  if (fabs(px*px + py*py) < 0.0001) {
+    std::cout << "UpdateEKF(): CalculateJacobian() - Error - Division by Zero" << std::endl;
+    return;
+  }
+
+  double rho = sqrt(px*px + py*py);
+  double phi = atan2(py,px);
+  double rho_dot = 0;
+  
+  if(fabs(rho)>=0.0001){
+    rho_dot =  (px*vx + py*vy)/rho;
+  }
+
+
+  VectorXd z_pred(3);
+  z_pred << rho, phi, rho_dot;
+  VectorXd y = z - z_pred;
+  y(1) = atan2(sin(y(1)),cos(y(1)));
+
+  if(y(1) < -M_PI){
+    y(1) += 2*M_PI;
+  }
+
+  if(y(1) > M_PI){
+    y(1) -= 2*M_PI;
+  }
+
+  MatrixXd S = H_*P_*H_.transpose() + R_;
+  MatrixXd K = P_*H_.transpose()*S.inverse();
+  //std::cout << "K =" << K << std::endl;
+
+  int x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size,x_size);
+  x_ = x_+ (K*y);
+  P_ = (I - K*H_)*P_;
 }
